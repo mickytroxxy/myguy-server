@@ -21,7 +21,6 @@ const {dbConnection} = require('./connection');
 //apiHandler(app) // passing the app instance to the apiHandler method to work with routes using mongo
 apiHandlerMysql(app) // passing the app instance to the apiHandler method to work with routes using mysql
 //apiHandlerPG(app) // passing the app instance to the apiHandler method to work with routes using postgres
-io.on('connection', (socket) => handleSocket(socket)); // handling the socket.io incase we need it
 
 app.get('/', (req, res) => {
     res.sendFile( __dirname + "/" + "index.html" );
