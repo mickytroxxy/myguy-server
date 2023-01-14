@@ -4,7 +4,6 @@ const cors = require('cors')
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require("socket.io");
-const io = new Server(server);
 const bodyParser = require('body-parser');
 const upload = require("express-fileupload");
 const port = process.env.PORT || 3000
@@ -16,11 +15,8 @@ app.use('files',require("express").static(__dirname + 'files'))
 app.use(cors());
 app.use(upload());
 const { Configuration, OpenAIApi } = require("openai");
-const {handleSocket} = require('./io/index')
-//const {apiHandler} = require('./api/mongo')
 const {apiHandlerMysql} = require('./api/mysql')
 const {dbConnection} = require('./connection');
-//const { apiHandlerPG } = require('./api/postgres');
 
 //apiHandler(app) // passing the app instance to the apiHandler method to work with routes using mongo
 apiHandlerMysql(app) // passing the app instance to the apiHandler method to work with routes using mysql
