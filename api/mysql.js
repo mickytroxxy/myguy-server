@@ -7,11 +7,11 @@ const fs = require('fs');
 const apiHandlerMysql = (app) => {
 
     app.post("/uploadPDF",function(req,res){
+        console.log("uploading")
         if (req.files) {
             const file = req.files.fileUrl;
             const documentId = req.body.documentId;
             const made = mkdirp.sync('./files') 
-            //061 0861 0033 00
             file.mv(`./files/${documentId}.pdf`, (err) => {
                 if (err) {
                     res.send(false)
@@ -25,8 +25,10 @@ const apiHandlerMysql = (app) => {
     });
     app.get("/signPDF/:documentId",function(req,res){
         const documentId = req.params.documentId
-        console.log(documentId)
         addWaterMark(documentId,res)
+    });
+    app.get("/api",function(req,res){
+        res.send({data:"success"})
     });
 }
 const addWaterMark = async (documentId,res) => {
