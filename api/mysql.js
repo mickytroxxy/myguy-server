@@ -1,22 +1,33 @@
-const {dbConnection} = require('../connection')
 const mkdirp = require('mkdirp');
-const md5 = require('md5');
 const QRCode = require('qrcode')
 const { PDFDocument } = require('pdf-lib');
 const fs = require('fs');
+const Rekognition = require('node-rekognition');
+const path = require('path');
+const AWSParameters = {
+    "accessKeyId": "AKIAVAEKHGXRZOOPTFEP",
+    "secretAccessKey": "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",
+    "region": "ap-southeast-2",
+}
+const rekognition = new Rekognition(AWSParameters)
 const apiHandlerMysql = (app) => {
-
     app.post("/uploadPDF",function(req,res){
-        console.log("uploading")
         if (req.files) {
             const file = req.files.fileUrl;
             const documentId = req.body.documentId;
-            const made = mkdirp.sync('./files') 
-            file.mv(`./files/${documentId}.pdf`, (err) => {
+            const fileCategory = req.body.fileCategory;
+            console.log("uploading ",fileCategory)
+            const made = mkdirp.sync('./files');
+            const filePath = fileCategory === `document` ? `./files/${documentId}.pdf` : `./files/${documentId}.png`
+            file.mv(filePath, (err) => {
                 if (err) {
-                    res.send(false)
+                    res.send({status:0,message:'Failed to upload your file'})
                 }else{
-                    res.send(true);
+                    if(fileCategory === 'document'){
+                        res.send({status:1,message:'Document Successfully uploaded!'})
+                    }else{
+                        detectFaces(documentId,fileCategory,res);
+                    }
                 }
             });
         }else{
@@ -31,6 +42,37 @@ const apiHandlerMysql = (app) => {
         res.send({data:"success"})
     });
 }
+const detectFaces = async (documentId,fileCategory,res) =>{
+    const bitmap = fs.readFileSync('./files/'+documentId+'.png')
+    const imageFaces = await rekognition.detectFaces(bitmap)
+    if(imageFaces?.FaceDetails?.length > 0){
+        if(fileCategory === "documentPhoto"){
+            res.send({status:1,message:'Face detected, now comparing, please wait...'})   
+        }else{
+            recogizeFaces(documentId,fileCategory,res)
+        }
+    }else{
+        if(fileCategory === "documentPhoto"){
+            res.send({status:0,message:'No face identified, scroll to where your face is!'})
+        }else{
+            res.send({status:0,message:'No face available, try to move your camera'})
+        }
+    }
+}
+const recogizeFaces = async (documentId,fileCategory,res) =>{
+    const selfiePhoto = fs.readFileSync('./files/'+documentId+'.png')
+    const documentPhoto = fs.readFileSync('./files/'+documentId.split("_")[0]+'.png')
+    const imageFaces = await rekognition.compareFaces(selfiePhoto,documentPhoto);
+    if(imageFaces){
+        if(imageFaces.FaceMatches?.length > 0){
+            res.send({status:1,similarity:imageFaces.FaceMatches[0]?.Similarity})
+        }else{
+            res.send({status:1,similarity:0})
+        }
+    }else{
+        res.send({status:0,message:"Something went wrong while trying to verify your identity!"})
+    }
+}
 const addWaterMark = async (documentId,res) => {
     const opts = {
         errorCorrectionLevel: 'H',
@@ -38,8 +80,8 @@ const addWaterMark = async (documentId,res) => {
         margin: 2,
         width:50,
         color: {
-         dark: '#000',
-         light: '#fff',
+            dark: '#000',
+            light: '#fff',
         },
     }
     QRCode.toDataURL(documentId, opts, async (err,url)=>{
