@@ -71,7 +71,7 @@ const recogizeFaces = async (documentId,fileCategory,res) =>{
                 res.send({status:0,message:"Identity check failed! You are not the owner of the document"})
             }
         }else{
-            res.send({status:1,similarity:0})
+            res.send({status:0,message:"Identity check failed! You are not the owner of the document"})
         }
     }else{
         res.send({status:0,message:"Something went wrong while trying to verify your identity!"})
