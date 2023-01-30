@@ -66,14 +66,18 @@ const recogizeFaces = async (documentId,fileCategory,res) =>{
     if(imageFaces){
         if(imageFaces.FaceMatches?.length > 0){
             if(imageFaces.FaceMatches[0]?.Similarity > 74){
+                console.log("Everything is done....")
                 res.send({status:1,similarity:imageFaces.FaceMatches[0]?.Similarity})
             }else{
                 res.send({status:0,message:"Identity check failed! You are not the owner of the document"})
+                console.log("Identity check failed! You are not the owner of the document not great than 74")
             }
         }else{
             res.send({status:0,message:"Identity check failed! You are not the owner of the document"})
+            console.log("Identity check failed! You are not the owner of the document")
         }
     }else{
+        console.log("No imageFaces, sorry")
         res.send({status:0,message:"Something went wrong while trying to verify your identity!"})
     }
 }
