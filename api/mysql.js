@@ -26,8 +26,64 @@ const apiHandlerMysql = (app) => {
                     if(fileCategory === 'document'){
                         res.send({status:1,message:'Document Successfully uploaded!'})
                     }else{
-                        detectFaces(documentId,fileCategory,res);
+                        detectFaces(documentId,(cb) => {
+                            if(cb){
+                                if(fileCategory === "documentPhoto"){
+                                    res.send({status:1,message:'Face detected, now comparing, please wait...'})   
+                                }else{
+                                    recogizeFaces(documentId,(cb) => {
+                                        if(cb){
+                                            res.send({status:1,similarity:cb})
+                                        }else{
+                                            res.send({status:0,message:"Identity check failed! Something Went Wrong"})
+                                        }
+                                    })
+                                }
+                            }else{
+                                if(fileCategory === "documentPhoto"){
+                                    res.send({status:0,message:'No face identified, scroll to where your face is!'})
+                                }else{
+                                    res.send({status:0,message:'No face available, try to move your camera'})
+                                }
+                            }
+                        });
                     }
+                }
+            });
+        }else{
+            res.send(false)
+        }
+    });
+    app.post("/verifyRequest",function(req,res){
+        if (req.files) {
+            const file = req.files.fileUrl;
+            const selfiePhoto = req.body.documentId+"_selfiePhoto";
+            const documentId = req.body.documentId
+            const requestId = req.body.requestId;
+            const filePath = `./files/${selfiePhoto}.png`;
+            file.mv(filePath, (err) => {
+                if (err) {
+                    res.send({status:0,message:'Failed to upload your file'})
+                }else{
+                    detectFaces(selfiePhoto,(cb) => {
+                        if(cb){
+                            detectFaces(documentId,(cb) => {
+                                if(cb){
+                                    recogizeFaces(selfiePhoto,(cb) => {
+                                        if(cb){
+                                            res.send({status:1,similarity:cb,message:'Your verification was successful and access to your document has been granted'})
+                                        }else{
+                                            res.send({status:0,message:"Identity check failed! Something Went Wrong"})
+                                        }
+                                    })
+                                }else{
+                                    res.send({status:0,message:'No face identified, scroll to where your face is!'})
+                                }
+                            })
+                        }else{
+                            res.send({status:0,message:'No face available, try to move your camera'})
+                        }
+                    });
                 }
             });
         }else{
@@ -42,43 +98,31 @@ const apiHandlerMysql = (app) => {
         res.send({data:"success"})
     });
 }
-const detectFaces = async (documentId,fileCategory,res) =>{
+const detectFaces = async (documentId,cb) =>{
     const bitmap = fs.readFileSync('./files/'+documentId+'.png')
     const imageFaces = await rekognition.detectFaces(bitmap)
     if(imageFaces?.FaceDetails?.length > 0){
-        if(fileCategory === "documentPhoto"){
-            res.send({status:1,message:'Face detected, now comparing, please wait...'})   
-        }else{
-            recogizeFaces(documentId,fileCategory,res)
-        }
+        cb(true);
     }else{
-        if(fileCategory === "documentPhoto"){
-            res.send({status:0,message:'No face identified, scroll to where your face is!'})
-        }else{
-            res.send({status:0,message:'No face available, try to move your camera'})
-        }
+        cb(false)
     }
 }
-const recogizeFaces = async (documentId,fileCategory,res) =>{
+const recogizeFaces = async (documentId,cb) =>{
     const selfiePhoto = fs.readFileSync('./files/'+documentId+'.png')
     const documentPhoto = fs.readFileSync('./files/'+documentId.split("_")[0]+'.png')
     const imageFaces = await rekognition.compareFaces(selfiePhoto,documentPhoto);
     if(imageFaces){
         if(imageFaces.FaceMatches?.length > 0){
             if(imageFaces.FaceMatches[0]?.Similarity > 74){
-                console.log("Everything is done....")
-                res.send({status:1,similarity:imageFaces.FaceMatches[0]?.Similarity})
+                cb(imageFaces.FaceMatches[0]?.Similarity)            
             }else{
-                res.send({status:0,message:"Identity check failed! You are not the owner of the document"})
-                console.log("Identity check failed! You are not the owner of the document not great than 74")
+                cb(false)
             }
         }else{
-            res.send({status:0,message:"Identity check failed! You are not the owner of the document"})
-            console.log("Identity check failed! You are not the owner of the document")
+            cb(false)
         }
     }else{
-        console.log("No imageFaces, sorry")
-        res.send({status:0,message:"Something went wrong while trying to verify your identity!"})
+        cb(false)
     }
 }
 const addWaterMark = async (documentId,res) => {
