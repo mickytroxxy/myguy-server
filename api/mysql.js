@@ -94,6 +94,10 @@ const apiHandlerMysql = (app) => {
         const documentId = req.params.documentId
         addWaterMark(documentId,res)
     });
+    app.post("/denyRequest/:requestId",function(req,res){
+        const denyRequest = req.params.denyRequest
+        console.log(denyRequest +" request denied")
+    });
     app.get("/api",function(req,res){
         res.send({data:"success"})
     });
