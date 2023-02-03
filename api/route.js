@@ -81,9 +81,11 @@ const apiHandlerMysql = (app) => {
                                 if(cb){
                                     recogizeFaces(selfiePhoto,(cb) => {
                                         if(cb){
+                                            responseToClient(requestId,{status:1,message:"SUCCESS"});
                                             res.send({status:1,similarity:cb,message:'Your verification was successful and access to your document has been granted'});
                                             updateData("verificationRequests",requestId,{status:"SUCCESS"});
                                         }else{
+                                            responseToClient(requestId,{status:0,message:"NOTAMATCH"});
                                             res.send({status:0,message:"Identity check failed! Something Went Wrong"});
                                             updateData("verificationRequests",requestId,{status:"NOTAMATCH"});
                                         }
@@ -91,11 +93,14 @@ const apiHandlerMysql = (app) => {
                                 }else{
                                     res.send({status:0,message:'No face identified, scroll to where your face is!'})
                                     updateData("verificationRequests",requestId,{status:"NOFACE"});
+                                    responseToClient(requestId,{status:0,message:"NOFACE"});
                                 }
                             })
                         }else{
                             res.send({status:0,message:'No face available, try to move your camera'});
                             updateData("verificationRequests",requestId,{status:"NOFACE"});
+                            responseToClient(requestId,{status:0,message:"NOFACE"});
+                            
                         }
                     });
                 }
@@ -108,7 +113,7 @@ const apiHandlerMysql = (app) => {
         const documentId = req.params.documentId
         addWaterMark(documentId,res)
     });
-    app.post("/denyRequest/:requestId",function(req,res){
+    app.get("/denyRequest/:requestId",function(req,res){
         const requestId = req.params.requestId;
         updateData("verificationRequests",requestId,{status:"DENIED"});
         responseToClient(requestId,{status:0,message:"USER HAS DENIED YOUR REQUEST"});
