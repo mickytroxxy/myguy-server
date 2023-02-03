@@ -115,6 +115,7 @@ const apiHandlerMysql = (app) => {
     });
     app.get("/denyRequest/:requestId",function(req,res){
         const requestId = req.params.requestId;
+        console.log("The request is "+requestId)
         updateData("verificationRequests",requestId,{status:"DENIED"});
         responseToClient(requestId,{status:0,message:"USER HAS DENIED YOUR REQUEST"});
         res.send(true);
