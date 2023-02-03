@@ -3,13 +3,23 @@ const QRCode = require('qrcode')
 const { PDFDocument } = require('pdf-lib');
 const fs = require('fs');
 const Rekognition = require('node-rekognition');
-const path = require('path');
+const {createData,updateData, getDocumentById, getUserInfo, sendPushNotification} = require("./api")
 const AWSParameters = {
     "accessKeyId": "AKIAVAEKHGXRZOOPTFEP",
     "secretAccessKey": "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",
     "region": "ap-southeast-2",
 }
-const rekognition = new Rekognition(AWSParameters)
+const requests = [];
+const rekognition = new Rekognition(AWSParameters);
+const responseToClient = (requestId,obj) => {
+    if(requests.length > 0){
+        const requestInfo = requests.filter(item => item.requestId === requestId);
+        if(requestInfo.length > 0){
+            requestInfo[0].res.send(obj);
+            requestInfo.splice(requestInfo.indexOf(requestInfo[0]), 1)
+        }
+    }
+}
 const apiHandlerMysql = (app) => {
     app.post("/uploadPDF",function(req,res){
         if (req.files) {
@@ -71,17 +81,21 @@ const apiHandlerMysql = (app) => {
                                 if(cb){
                                     recogizeFaces(selfiePhoto,(cb) => {
                                         if(cb){
-                                            res.send({status:1,similarity:cb,message:'Your verification was successful and access to your document has been granted'})
+                                            res.send({status:1,similarity:cb,message:'Your verification was successful and access to your document has been granted'});
+                                            updateData("verificationRequests",requestId,{status:"SUCCESS"});
                                         }else{
-                                            res.send({status:0,message:"Identity check failed! Something Went Wrong"})
+                                            res.send({status:0,message:"Identity check failed! Something Went Wrong"});
+                                            updateData("verificationRequests",requestId,{status:"NOTAMATCH"});
                                         }
                                     })
                                 }else{
                                     res.send({status:0,message:'No face identified, scroll to where your face is!'})
+                                    updateData("verificationRequests",requestId,{status:"NOFACE"});
                                 }
                             })
                         }else{
-                            res.send({status:0,message:'No face available, try to move your camera'})
+                            res.send({status:0,message:'No face available, try to move your camera'});
+                            updateData("verificationRequests",requestId,{status:"NOFACE"});
                         }
                     });
                 }
@@ -95,11 +109,51 @@ const apiHandlerMysql = (app) => {
         addWaterMark(documentId,res)
     });
     app.post("/denyRequest/:requestId",function(req,res){
-        const denyRequest = req.params.denyRequest
-        console.log(denyRequest +" request denied")
+        const requestId = req.params.requestId;
+        updateData("verificationRequests",requestId,{status:"DENIED"});
+        responseToClient(requestId,{status:0,message:"USER HAS DENIED YOUR REQUEST"});
+        res.send(true);
+    });
+    app.post("/verifyUser",function(req,res){
+        const time = Date.now();
+        const companyId = req.body.companyId;
+        const companyName = req.body.companyName;
+        const documentId = req.body.documentId;
+        const status = "PENDING";
+        const text = `${companyName} would like to access your personal data, Please approve with your face if you have authorized this act`;
+        const requestId = (time + Math.floor(Math.random()*89999+10000000)).toString();
+        getDocumentById(documentId,(response) => {
+            console.log(response)
+            if(response.length > 0){
+                const accountId = response[0].documentOwner;
+                getUserInfo(accountId,(response) => {
+                    if(response.length > 0){
+                        const user = response[0];
+                        if(user.detectorMode){
+                            requests.push({requestId,res});
+                            sendPushNotification(user.notificationToken,`${companyName} Would like you to verify your identity`);
+                            createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId},companyName);
+                            setTimeout(() => {
+                                const requestInfo = requests.filter(item => item.requestId === requestId);
+                                if(requestInfo.length > 0){
+                                    res.send({success:0,message:"REQUEST TIME OUT"})
+                                }
+                            }, 120000);
+                        }else{
+                            res.send({success:0,message:"USER HAS DISABLED CYBER DETECTOR MODE"})
+                        }
+                    }else{
+                        res.send({success:0,message:"NO SUCH USER ON OUR SERVERS"})
+                    }
+                })
+            }else{
+                res.send({success:0,message:"NO SUCH USER ON OUR SERVERS"})
+            }
+        })
     });
     app.get("/api",function(req,res){
         res.send({data:"success"})
+        console.log(createData("someTest","7377778",{name:'Mickyyyyy'}))
     });
 }
 const detectFaces = async (documentId,cb) =>{
