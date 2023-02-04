@@ -3,7 +3,7 @@ const QRCode = require('qrcode')
 const { PDFDocument } = require('pdf-lib');
 const fs = require('fs');
 const Rekognition = require('node-rekognition');
-const {createData,updateData, getDocumentById, getUserInfo, sendPushNotification} = require("./api")
+const {createData,updateData, getDocumentById, getUserInfo, sendPushNotification, listenToChange} = require("./api")
 const AWSParameters = {
     "accessKeyId": "AKIAVAEKHGXRZOOPTFEP",
     "secretAccessKey": "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",
@@ -16,8 +16,12 @@ const responseToClient = (requestId,obj) => {
         const requestInfo = requests.filter(item => item.requestId === requestId);
         if(requestInfo.length > 0){
             requestInfo[0].res.send(obj);
-            requestInfo.splice(requestInfo.indexOf(requestInfo[0]), 1)
+            requests.splice(requests.indexOf(requestInfo[0]), 1)
+        }else{
+            console.log(requestInfo)
         }
+    }else{
+        console.log("Requests array is empty")
     }
 }
 const apiHandlerMysql = (app) => {
@@ -70,6 +74,7 @@ const apiHandlerMysql = (app) => {
             const selfiePhoto = req.body.documentId+"_selfiePhoto";
             const documentId = req.body.documentId
             const requestId = req.body.requestId;
+            const timeout = parseFloat(req.body.timeout);
             const filePath = `./files/${selfiePhoto}.png`;
             file.mv(filePath, (err) => {
                 if (err) {
@@ -125,37 +130,41 @@ const apiHandlerMysql = (app) => {
         const companyId = req.body.companyId;
         const companyName = req.body.companyName;
         const documentId = req.body.documentId;
+        const timeout = parseFloat(req.body.timeout);
         const status = "PENDING";
         const text = `${companyName} would like to access your personal data, Please approve with your face if you have authorized this act`;
         const requestId = (time + Math.floor(Math.random()*89999+10000000)).toString();
-        getDocumentById(documentId,(response) => {
-            console.log(response)
-            if(response.length > 0){
-                const accountId = response[0].documentOwner;
-                getUserInfo(accountId,(response) => {
-                    if(response.length > 0){
-                        const user = response[0];
-                        if(user.detectorMode){
-                            requests.push({requestId,res});
-                            sendPushNotification(user.notificationToken,`${companyName} Would like you to verify your identity`);
-                            createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId},companyName);
-                            setTimeout(() => {
-                                const requestInfo = requests.filter(item => item.requestId === requestId);
-                                if(requestInfo.length > 0){
-                                    res.send({success:0,message:"REQUEST TIME OUT"})
-                                }
-                            }, 120000);
+        if(timeout < 210001){
+            getDocumentById(documentId,(response) => {
+                if(response.length > 0){
+                    const accountId = response[0].documentOwner;
+                    getUserInfo(accountId,(response) => {
+                        if(response.length > 0){
+                            const user = response[0];
+                            if(user.detectorMode){
+                                requests.push({requestId,res});
+                                sendPushNotification(user.notificationToken,`${companyName} Would like you to verify your identity`);
+                                createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId},companyName);
+                                setTimeout(() => {
+                                    const requestInfo = requests.filter(item => item.requestId === requestId);
+                                    if(requestInfo.length > 0){
+                                        res.send({success:0,message:"REQUEST TIME OUT"})
+                                    }
+                                }, timeout);
+                            }else{
+                                res.send({success:0,message:"USER HAS DISABLED CYBER DETECTOR MODE"})
+                            }
                         }else{
-                            res.send({success:0,message:"USER HAS DISABLED CYBER DETECTOR MODE"})
+                            res.send({success:0,message:"NO SUCH USER ON OUR SERVERS"})
                         }
-                    }else{
-                        res.send({success:0,message:"NO SUCH USER ON OUR SERVERS"})
-                    }
-                })
-            }else{
-                res.send({success:0,message:"NO SUCH USER ON OUR SERVERS"})
-            }
-        })
+                    })
+                }else{
+                    res.send({success:0,message:"NO SUCH ID ON OUR SERVERS"})
+                }
+            })
+        }else{
+            res.send({status:0,message:'TIMEOUT SHOULD BE LESS THAN 3 MINUTES AND 31 SECONDS'})
+        }
     });
     app.get("/api",function(req,res){
         res.send({data:"success"})

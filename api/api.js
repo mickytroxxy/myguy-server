@@ -1,5 +1,6 @@
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, doc,updateDoc, getDocs, setDoc, query, where } = require('firebase/firestore/lite');
+const { onSnapshot } = require('firebase/firestore');
 const { Expo } = require('expo-server-sdk');
 let expo = new Expo();
 const firebaseConfig = {
@@ -67,4 +68,11 @@ const sendPushNotification = async (to,body) => {
         }
     }
 }
-module.exports = {createData,sendPushNotification,updateData,getDocumentById,getUserInfo};
+const listenToChange =  (requestId,cb) => {
+    //const q = query(collection(db, "verificationRequests"), where("requestId", "==", requestId));
+    const q =  query(collection(db, "verificationRequests"), where("requestId", "==", requestId))
+    onSnapshot(q, (snapshot) => {
+
+    });
+}
+module.exports = {createData,listenToChange,sendPushNotification,updateData,getDocumentById,getUserInfo};
