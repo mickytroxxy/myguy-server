@@ -3,7 +3,7 @@ const QRCode = require('qrcode')
 const { PDFDocument } = require('pdf-lib');
 const fs = require('fs');
 const Rekognition = require('node-rekognition');
-const {createData,updateData, getDocumentById, getUserInfo, sendPushNotification, listenToChange} = require("./api")
+const {createData,updateData, getDocumentById, getUserInfo, sendPushNotification} = require("./api")
 const AWSParameters = {
     "accessKeyId": "AKIAVAEKHGXRZOOPTFEP",
     "secretAccessKey": "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",

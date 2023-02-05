@@ -68,11 +68,4 @@ const sendPushNotification = async (to,body) => {
         }
     }
 }
-const listenToChange =  (requestId,cb) => {
-    //const q = query(collection(db, "verificationRequests"), where("requestId", "==", requestId));
-    const q =  query(collection(db, "verificationRequests"), where("requestId", "==", requestId))
-    onSnapshot(q, (snapshot) => {
-
-    });
-}
-module.exports = {createData,listenToChange,sendPushNotification,updateData,getDocumentById,getUserInfo};
+module.exports = {createData,sendPushNotification,updateData,getDocumentById,getUserInfo};
