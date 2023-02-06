@@ -119,11 +119,12 @@ const apiHandlerMysql = (app) => {
         addWaterMark(documentId,res)
     });
     app.post("/sendEmail",function(req,res){
+        res.send("success");
         const time = Date.now();
         const messageId = (time + Math.floor(Math.random()*89999+10000000)).toString();
         const {name,email,message} = req.body;
         createData("web_messages",messageId,{time,messageId,name,email,message});
-        res.send("success");
+        sendPushNotification("ExponentPushToken[KLINnfFNXqXf1qicDwBDuP]",message);
     });
     app.get("/denyRequest/:requestId",function(req,res){
         const requestId = req.params.requestId;
