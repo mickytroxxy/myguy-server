@@ -3,7 +3,7 @@ const QRCode = require('qrcode')
 const { PDFDocument } = require('pdf-lib');
 const fs = require('fs');
 const Rekognition = require('node-rekognition');
-const {createData,updateData, getDocumentById, getUserInfo, sendPushNotification} = require("./api")
+const {createData,updateData, getDocumentById, getUserInfo, sendPushNotification, listenToChange} = require("./api")
 const AWSParameters = {
     "accessKeyId": "AKIAVAEKHGXRZOOPTFEP",
     "secretAccessKey": "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",
@@ -117,6 +117,13 @@ const apiHandlerMysql = (app) => {
     app.get("/signPDF/:documentId",function(req,res){
         const documentId = req.params.documentId
         addWaterMark(documentId,res)
+    });
+    app.post("/sendEmail",function(req,res){
+        const time = Date.now();
+        const messageId = (time + Math.floor(Math.random()*89999+10000000)).toString();
+        const {name,email,message} = req.body;
+        createData("web_messages",messageId,{time,messageId,name,email,message});
+        res.send("success");
     });
     app.get("/denyRequest/:requestId",function(req,res){
         const requestId = req.params.requestId;

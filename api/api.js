@@ -68,4 +68,7 @@ const sendPushNotification = async (to,body) => {
         }
     }
 }
-module.exports = {createData,sendPushNotification,updateData,getDocumentById,getUserInfo};
+const listenToChange =  (requestId,cb) => {
+    
+}
+module.exports = {createData,listenToChange,sendPushNotification,updateData,getDocumentById,getUserInfo};
