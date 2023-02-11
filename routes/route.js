@@ -1,30 +1,6 @@
-const mkdirp = require('mkdirp');
-const QRCode = require('qrcode')
-const { PDFDocument } = require('pdf-lib');
-const fs = require('fs');
-const Rekognition = require('node-rekognition');
-const {createData,updateData, getDocumentById, getUserInfo, sendPushNotification, listenToChange} = require("./api")
-const AWSParameters = {
-    "accessKeyId": "AKIAVAEKHGXRZOOPTFEP",
-    "secretAccessKey": "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",
-    "region": "ap-southeast-2",
-}
-const requests = [];
-const rekognition = new Rekognition(AWSParameters);
-const responseToClient = (requestId,obj) => {
-    if(requests.length > 0){
-        const requestInfo = requests.filter(item => item.requestId === requestId);
-        if(requestInfo.length > 0){
-            requestInfo[0].res.send(obj);
-            requests.splice(requests.indexOf(requestInfo[0]), 1)
-        }else{
-            console.log(requestInfo)
-        }
-    }else{
-        console.log("Requests array is empty")
-    }
-}
-const apiHandlerMysql = (app) => {
+const { updateData, sendPushNotification, createData, getDocumentById, getUserInfo } = require("../context/firebase");
+const { detectFaces, recogizeFaces, responseToClient, requests } = require("../context/methods");
+const route = (app) => {
     app.post("/uploadPDF",function(req,res){
         if (req.files) {
             const file = req.files.fileUrl;
@@ -86,7 +62,12 @@ const apiHandlerMysql = (app) => {
                                 if(cb){
                                     recogizeFaces(selfiePhoto,(cb) => {
                                         if(cb){
-                                            responseToClient(requestId,{status:1,message:"SUCCESS"});
+                                            const requestInfo = requests.filter(item => item.requestId === requestId);
+                                            if(requestInfo.length > 0 && requestInfo[0].isGetDocuments){
+                                                responseToClient(requestId,{status:1,message:"SUCCESS",clientInfo:{documentUrl:'/'+documentId+'.pdf',selfiePhoto:'/'+selfiePhoto+'.png'}});
+                                            }else{
+                                                responseToClient(requestId,{status:1,message:"SUCCESS"});
+                                            }
                                             res.send({status:1,similarity:cb,message:'Your verification was successful and access to your document has been granted'});
                                             updateData("verificationRequests",requestId,{status:"SUCCESS"});
                                         }else{
@@ -138,6 +119,7 @@ const apiHandlerMysql = (app) => {
         const companyId = req.body.companyId;
         const companyName = req.body.companyName;
         const documentId = req.body.documentId;
+        const isGetDocuments = req.body.isGetDocuments;
         const timeout = parseFloat(req.body.timeout);
         const status = "PENDING";
         const text = `${companyName} would like to access your personal data, Please approve with your face if you have authorized this act`;
@@ -146,13 +128,17 @@ const apiHandlerMysql = (app) => {
             getDocumentById(documentId,(response) => {
                 if(response.length > 0){
                     const accountId = response[0].documentOwner;
+                    const url = response[0].url;
                     getUserInfo(accountId,(response) => {
                         if(response.length > 0){
                             const user = response[0];
                             if(user.detectorMode){
-                                requests.push({requestId,res});
+                                requests.push({requestId,res,isGetDocuments});
                                 sendPushNotification(user.notificationToken,`${companyName} Would like you to verify your identity`);
                                 createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId},companyName);
+                                if(isGetDocuments){
+
+                                }
                                 setTimeout(() => {
                                     const requestInfo = requests.filter(item => item.requestId === requestId);
                                     if(requestInfo.length > 0){
@@ -174,62 +160,9 @@ const apiHandlerMysql = (app) => {
             res.send({status:0,message:'TIMEOUT SHOULD BE LESS THAN 3 MINUTES AND 31 SECONDS'})
         }
     });
-    app.get("/api",function(req,res){
+    app.post("/api",function(req,res){
+        console.log(req.body);
         res.send({data:"success"})
-        console.log(createData("someTest","7377778",{name:'Mickyyyyy'}))
     });
 }
-const detectFaces = async (documentId,cb) =>{
-    const bitmap = fs.readFileSync('./files/'+documentId+'.png')
-    const imageFaces = await rekognition.detectFaces(bitmap)
-    if(imageFaces?.FaceDetails?.length > 0){
-        cb(true);
-    }else{
-        cb(false)
-    }
-}
-const recogizeFaces = async (documentId,cb) =>{
-    const selfiePhoto = fs.readFileSync('./files/'+documentId+'.png')
-    const documentPhoto = fs.readFileSync('./files/'+documentId.split("_")[0]+'.png')
-    const imageFaces = await rekognition.compareFaces(selfiePhoto,documentPhoto);
-    if(imageFaces){
-        if(imageFaces.FaceMatches?.length > 0){
-            if(imageFaces.FaceMatches[0]?.Similarity > 74){
-                cb(imageFaces.FaceMatches[0]?.Similarity)            
-            }else{
-                cb(false)
-            }
-        }else{
-            cb(false)
-        }
-    }else{
-        cb(false)
-    }
-}
-const addWaterMark = async (documentId,res) => {
-    const opts = {
-        errorCorrectionLevel: 'H',
-        quality: 1,
-        margin: 2,
-        width:50,
-        color: {
-            dark: '#000',
-            light: '#fff',
-        },
-    }
-    QRCode.toDataURL(documentId, opts, async (err,url)=>{
-        const doc = await PDFDocument.load(fs.readFileSync('./files/'+documentId+'.pdf'));
-        const pages = doc.getPages();
-        const img = await doc.embedPng(url);
-        for (const [i, page] of Object.entries(pages)) {
-            page.drawImage(img, {
-                x: page.getWidth() - 60,
-                y: page.getHeight() - (page.getHeight() - 10)
-            });
-        }
-        fs.writeFileSync('./files/'+documentId+'.pdf', await doc.save());
-        console.log("Document Signed")
-        res.send(true);
-    })
-}
-module.exports = {apiHandlerMysql};
+module.exports = {route};

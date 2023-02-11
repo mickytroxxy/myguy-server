@@ -1,6 +1,5 @@
 const { initializeApp } = require('firebase/app');
 const { getFirestore, collection, doc,updateDoc, getDocs, setDoc, query, where } = require('firebase/firestore/lite');
-const { onSnapshot } = require('firebase/firestore');
 const { Expo } = require('expo-server-sdk');
 let expo = new Expo();
 const firebaseConfig = {
