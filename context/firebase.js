@@ -48,6 +48,15 @@ const getUserInfo = async (id,cb) => {
         cb(e);
     }
 }
+const login = async (phoneNumber,password,cb) => {
+    try {
+        const querySnapshot = await getDocs(query(collection(db, "clients"), where("phoneNumber", "==", phoneNumber), where("password", "==", password)));
+        const data = querySnapshot.docs.map(doc => doc.data());
+        cb(data)
+    } catch (e) {
+        cb(e);
+    }
+}
 const sendPushNotification = async (to,body) => {
     const messages = [
         {
@@ -70,4 +79,4 @@ const sendPushNotification = async (to,body) => {
 const listenToChange =  (requestId,cb) => {
     
 }
-module.exports = {createData,listenToChange,sendPushNotification,updateData,getDocumentById,getUserInfo};
+module.exports = {createData,login,listenToChange,sendPushNotification,updateData,getDocumentById,getUserInfo};
