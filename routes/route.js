@@ -50,7 +50,6 @@ const route = (app) => {
             const selfiePhoto = req.body.documentId+"_selfiePhoto";
             const documentId = req.body.documentId
             const requestId = req.body.requestId;
-            const timeout = parseFloat(req.body.timeout);
             const filePath = `./files/${selfiePhoto}.png`;
             file.mv(filePath, (err) => {
                 if (err) {
@@ -135,10 +134,7 @@ const route = (app) => {
                             if(user.detectorMode){
                                 requests.push({requestId,res,isGetDocuments});
                                 sendPushNotification(user.notificationToken,`${companyName} Would like you to verify your identity`);
-                                createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId},companyName);
-                                if(isGetDocuments){
-
-                                }
+                                createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId,isGetDocuments},companyName);
                                 setTimeout(() => {
                                     const requestInfo = requests.filter(item => item.requestId === requestId);
                                     if(requestInfo.length > 0){
