@@ -78,7 +78,7 @@ const route = (app) => {
                                                         }
                                                     })
                                                 }else{
-                                                    responseToClient(requestId,{status:1,message:"SUCCESS"});
+                                                    responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
                                                 }
                                                 res.send({status:1,similarity:cb,message:'Your verification was successful and access to your document has been granted'});
                                                 updateData("verificationRequests",requestId,{status:"SUCCESS"});
