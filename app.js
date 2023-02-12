@@ -6,7 +6,6 @@ const server = http.createServer(app);
 const bodyParser = require('body-parser');
 const upload = require("express-fileupload");
 const port = process.env.PORT || 3000
-var cors = require('cors')
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
