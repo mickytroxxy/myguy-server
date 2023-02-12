@@ -39,6 +39,15 @@ const getDocumentById = async (documentId,cb) => {
         cb(e);
     }
 }
+const getDocumentByUserId = async (documentOwner,cb) => {
+    try {
+        const querySnapshot = await getDocs(query(collection(db, "documents"), where("documentOwner", "==", documentOwner)));
+        const data = querySnapshot.docs.map(doc => doc.data());
+        cb(data)
+    } catch (e) {
+        cb(e);
+    }
+}
 const getUserInfo = async (id,cb) => {
     try {
         const querySnapshot = await getDocs(query(collection(db, "clients"), where("id", "==", id)));
@@ -79,4 +88,4 @@ const sendPushNotification = async (to,body) => {
 const listenToChange =  (requestId,cb) => {
     
 }
-module.exports = {createData,login,listenToChange,sendPushNotification,updateData,getDocumentById,getUserInfo};
+module.exports = {createData,login,getDocumentByUserId,listenToChange,sendPushNotification,updateData,getDocumentById,getUserInfo};

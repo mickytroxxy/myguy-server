@@ -1,4 +1,4 @@
-const { updateData, sendPushNotification, createData, getDocumentById, getUserInfo } = require("../context/firebase");
+const { updateData, sendPushNotification, createData, getDocumentById, getUserInfo, getDocumentByUserId } = require("../context/firebase");
 const { detectFaces, recogizeFaces, responseToClient, requests, mkdirp } = require("../context/methods");
 const route = (app) => {
     app.post("/uploadPDF",function(req,res){
@@ -65,7 +65,16 @@ const route = (app) => {
                                         if(cb){
                                             const requestInfo = requests.filter(item => item.requestId === requestId);
                                             if(requestInfo.length > 0 && requestInfo[0].isGetDocuments){
-                                                responseToClient(requestId,{status:1,message:"SUCCESS",clientInfo:{documentUrl:'/'+documentId+'.pdf',selfiePhoto:'/'+selfiePhoto+'.png'}});
+                                                const requestedDocuments = requestInfo[0].requestedDocuments;
+                                                const accountId = requestInfo[0].accountId;
+                                                getDocumentByUserId(accountId,(response) => {
+                                                    if(response.length > 0){
+                                                        const filteredDocuments = response.filter(document => requestedDocuments.includes(document.documentType));
+                                                        responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[...filteredDocuments,{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
+                                                    }else{
+                                                        responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
+                                                    }
+                                                })
                                             }else{
                                                 responseToClient(requestId,{status:1,message:"SUCCESS"});
                                             }
@@ -121,9 +130,13 @@ const route = (app) => {
         const companyName = req.body.companyName;
         const documentId = req.body.documentId;
         const isGetDocuments = req.body.isGetDocuments;
+        const requestedDocuments = req.body.requestedDocuments;
         const timeout = parseFloat(req.body.timeout);
         const status = "PENDING";
-        const text = `${companyName} would like to access your personal data, Please approve with your face if you have authorized this act`;
+        let text = `${companyName} would like to access your personal data, Please approve with your face if you have authorized this act`;
+        if(isGetDocuments){
+            text = `${companyName} would like to have access to your ${requestedDocuments.join(", ")} documents.\n\nTo authorize this access, Please press on the APPROVE button`
+        }
         const requestId = (time + Math.floor(Math.random()*89999+10000000)).toString();
         if(timeout < 210001){
             getDocumentById(documentId,(response) => {
@@ -133,7 +146,7 @@ const route = (app) => {
                         if(response.length > 0){
                             const user = response[0];
                             if(user.detectorMode){
-                                requests.push({requestId,res,isGetDocuments});
+                                requests.push({requestId,res,isGetDocuments,requestedDocuments,accountId});
                                 sendPushNotification(user.notificationToken,`${companyName} Would like you to verify your identity`);
                                 createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId,isGetDocuments});
                                 setTimeout(() => {

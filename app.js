@@ -24,12 +24,4 @@ app.get('/', (req, res) => {
 });
 server.listen(port, () => {
     console.log(`listening on ${port}...`);
-    // login("2765801613","123456",(response) => {
-    //     if(response.length > 0){
-    //         //res.send({status:1,companyData:response[0]})
-    //         console.log(response)
-    //     }else{
-    //         //res.send({status:0})
-    //     }
-    // })
 });
