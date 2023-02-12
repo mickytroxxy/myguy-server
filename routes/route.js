@@ -105,7 +105,8 @@ const route = (app) => {
                 });
             }else {
                 console.log('file not found!');
-                res.send({status:0,message:'Please sign your ID first to proceed!'})
+                res.send({status:0,message:'Please sign your ID first to proceed!'});
+                responseToClient(requestId,{status:0,message:"USER DID NOT SIGN THEIR ID"});
             }
         }else{
             res.send(false)
