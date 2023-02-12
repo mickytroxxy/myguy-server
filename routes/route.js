@@ -1,13 +1,15 @@
 const { updateData, sendPushNotification, createData, getDocumentById, getUserInfo } = require("../context/firebase");
-const { detectFaces, recogizeFaces, responseToClient, requests } = require("../context/methods");
+const { detectFaces, recogizeFaces, responseToClient, requests, mkdirp } = require("../context/methods");
 const route = (app) => {
     app.post("/uploadPDF",function(req,res){
+        console.log("stage 11111")
         if (req.files) {
             const file = req.files.fileUrl;
             const documentId = req.body.documentId;
             const fileCategory = req.body.fileCategory;
             console.log("uploading ",fileCategory)
             const made = mkdirp.sync('./files');
+            console.log("document id ",documentId)
             const filePath = fileCategory === `document` ? `./files/${documentId}.pdf` : `./files/${documentId}.png`
             file.mv(filePath, (err) => {
                 if (err) {
