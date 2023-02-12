@@ -127,14 +127,13 @@ const route = (app) => {
             getDocumentById(documentId,(response) => {
                 if(response.length > 0){
                     const accountId = response[0].documentOwner;
-                    const url = response[0].url;
                     getUserInfo(accountId,(response) => {
                         if(response.length > 0){
                             const user = response[0];
                             if(user.detectorMode){
                                 requests.push({requestId,res,isGetDocuments});
                                 sendPushNotification(user.notificationToken,`${companyName} Would like you to verify your identity`);
-                                createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId,isGetDocuments},companyName);
+                                createData("verificationRequests",requestId,{time,companyId,accountId,text,status,documentId,requestId,isGetDocuments});
                                 setTimeout(() => {
                                     const requestInfo = requests.filter(item => item.requestId === requestId);
                                     if(requestInfo.length > 0){
