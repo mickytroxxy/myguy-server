@@ -73,7 +73,7 @@ const addWaterMark = async (documentId,res) => {
             });
         }
         fs.writeFileSync('../files/'+documentId+'.pdf', await doc.save());
-        console.log("Document Signed")
+        console.log("Document Signed wow")
         res.send(true);
     })
 }
