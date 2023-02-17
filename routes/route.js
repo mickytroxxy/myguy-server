@@ -8,9 +8,9 @@ const route = (app) => {
             const documentId = req.body.documentId;
             const fileCategory = req.body.fileCategory;
             console.log("uploading ",fileCategory)
-            const made = mkdirp.sync('../files');
+            const made = mkdirp.sync('./files');
             console.log("document id ",documentId)
-            const filePath = fileCategory === `document` ? `../files/${documentId}.pdf` : `../files/${documentId}.png`
+            const filePath = fileCategory === `document` ? `./files/${documentId}.pdf` : `./files/${documentId}.png`
             file.mv(filePath, (err) => {
                 if (err) {
                     res.send({status:0,message:'Failed to upload your file'})
@@ -52,8 +52,8 @@ const route = (app) => {
             const selfiePhoto = req.body.documentId+"_selfiePhoto";
             const documentId = req.body.documentId
             const requestId = req.body.requestId;
-            const filePath = `../files/${selfiePhoto}.png`;
-            const idPath = `../files/${documentId}.png`;
+            const filePath = `./files/${selfiePhoto}.png`;
+            const idPath = `./files/${documentId}.png`;
             if(fs.existsSync(idPath)) {
                 file.mv(filePath, (err) => {
                     if (err) {

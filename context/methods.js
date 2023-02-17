@@ -25,7 +25,7 @@ const responseToClient = (requestId,obj) => {
     }
 }
 const detectFaces = async (documentId,cb) =>{
-    const bitmap = fs.readFileSync('../files/'+documentId+'.png')
+    const bitmap = fs.readFileSync('./files/'+documentId+'.png')
     const imageFaces = await rekognition.detectFaces(bitmap)
     if(imageFaces?.FaceDetails?.length > 0){
         cb(true);
@@ -34,8 +34,8 @@ const detectFaces = async (documentId,cb) =>{
     }
 }
 const recogizeFaces = async (documentId,cb) =>{
-    const selfiePhoto = fs.readFileSync('../files/'+documentId+'.png')
-    const documentPhoto = fs.readFileSync('../files/'+documentId.split("_")[0]+'.png')
+    const selfiePhoto = fs.readFileSync('./files/'+documentId+'.png')
+    const documentPhoto = fs.readFileSync('./files/'+documentId.split("_")[0]+'.png')
     const imageFaces = await rekognition.compareFaces(selfiePhoto,documentPhoto);
     if(imageFaces){
         if(imageFaces.FaceMatches?.length > 0){
@@ -63,7 +63,7 @@ const addWaterMark = async (documentId,res) => {
         },
     }
     QRCode.toDataURL(documentId, opts, async (err,url)=>{
-        const doc = await PDFDocument.load(fs.readFileSync('../files/'+documentId+'.pdf'));
+        const doc = await PDFDocument.load(fs.readFileSync('./files/'+documentId+'.pdf'));
         const pages = doc.getPages();
         const img = await doc.embedPng(url);
         for (const [i, page] of Object.entries(pages)) {
@@ -72,8 +72,8 @@ const addWaterMark = async (documentId,res) => {
                 y: page.getHeight() - (page.getHeight() - 10)
             });
         }
-        fs.writeFileSync('../files/'+documentId+'.pdf', await doc.save());
-        console.log("Document Signed wow")
+        fs.writeFileSync('./files/'+documentId+'.pdf', await doc.save());
+        console.log("Document Signed")
         res.send(true);
     })
 }
