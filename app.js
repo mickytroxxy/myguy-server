@@ -1,3 +1,4 @@
+const functions = require('firebase-functions')
 const express = require('express');
 const app = express();
 const cors = require('cors')
@@ -22,6 +23,7 @@ route(app)
 app.get('/', (req, res) => {
     res.sendFile( __dirname + "/" + "index.html" );
 });
+//exports.api = functions.https.onRequest(app)
 server.listen(port, () => {
     console.log(`listening on ${port}...`);
 });

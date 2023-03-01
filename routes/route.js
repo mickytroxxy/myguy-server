@@ -18,27 +18,23 @@ const route = (app) => {
                     if(fileCategory === 'document'){
                         res.send({status:1,message:'Document Successfully uploaded!'})
                     }else{
-                        detectFaces(documentId,(cb) => {
-                            if(cb){
-                                if(fileCategory === "documentPhoto"){
+                        if(fileCategory === "documentPhoto"){
+                            detectFaces(documentId,(cb) => {
+                                if(cb){
                                     res.send({status:1,message:'Face detected, now comparing, please wait...'})   
                                 }else{
-                                    recogizeFaces(documentId,(cb) => {
-                                        if(cb){
-                                            res.send({status:1,similarity:cb})
-                                        }else{
-                                            res.send({status:0,message:"Identity check failed! Something Went Wrong"})
-                                        }
-                                    })
-                                }
-                            }else{
-                                if(fileCategory === "documentPhoto"){
                                     res.send({status:0,message:'No face identified, scroll to where your face is!'})
-                                }else{
-                                    res.send({status:0,message:'No face available, try to move your camera'})
                                 }
-                            }
-                        });
+                            });
+                        }else{
+                            recogizeFaces(documentId,(cb) => {
+                                if(cb){
+                                    res.send({status:1,similarity:cb})
+                                }else{
+                                    res.send({status:0,message:"Identity check failed! Something Went Wrong"})
+                                }
+                            })
+                        }
                     }
                 }
             });
@@ -59,48 +55,31 @@ const route = (app) => {
                     if (err) {
                         res.send({status:0,message:'Failed to upload your file'})
                     }else{
-                        detectFaces(selfiePhoto,(cb) => {
+                        recogizeFaces(selfiePhoto,(cb) => {
                             if(cb){
-                                detectFaces(documentId,(cb) => {
-                                    if(cb){
-                                        recogizeFaces(selfiePhoto,(cb) => {
-                                            if(cb){
-                                                const requestInfo = requests.filter(item => item.requestId === requestId);
-                                                if(requestInfo.length > 0 && requestInfo[0].isGetDocuments){
-                                                    const requestedDocuments = requestInfo[0].requestedDocuments;
-                                                    const accountId = requestInfo[0].accountId;
-                                                    getDocumentByUserId(accountId,(response) => {
-                                                        if(response.length > 0){
-                                                            const filteredDocuments = response.filter(document => requestedDocuments.includes(document.documentType));
-                                                            responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[...filteredDocuments,{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
-                                                        }else{
-                                                            responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
-                                                        }
-                                                    })
-                                                }else{
-                                                    responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
-                                                }
-                                                res.send({status:1,similarity:cb,message:'Your verification was successful and access to your document has been granted'});
-                                                updateData("verificationRequests",requestId,{status:"SUCCESS"});
-                                            }else{
-                                                responseToClient(requestId,{status:0,message:"NOTAMATCH"});
-                                                res.send({status:0,message:"Identity check failed! Something Went Wrong"});
-                                                updateData("verificationRequests",requestId,{status:"NOTAMATCH"});
-                                            }
-                                        })
-                                    }else{
-                                        res.send({status:0,message:'No face identified, scroll to where your face is!'})
-                                        updateData("verificationRequests",requestId,{status:"NOFACE"});
-                                        responseToClient(requestId,{status:0,message:"NOFACE"});
-                                    }
-                                })
+                                const requestInfo = requests.filter(item => item.requestId === requestId);
+                                if(requestInfo.length > 0 && requestInfo[0].isGetDocuments){
+                                    const requestedDocuments = requestInfo[0].requestedDocuments;
+                                    const accountId = requestInfo[0].accountId;
+                                    getDocumentByUserId(accountId,(response) => {
+                                        if(response.length > 0){
+                                            const filteredDocuments = response.filter(document => requestedDocuments.includes(document.documentType));
+                                            responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[...filteredDocuments,{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
+                                        }else{
+                                            responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
+                                        }
+                                    })
+                                }else{
+                                    responseToClient(requestId,{status:1,message:"SUCCESS",requestedDocuments:[{ documentType: 'selfiePhoto', url: '/'+selfiePhoto+'.png'}]});
+                                }
+                                res.send({status:1,similarity:cb,message:'Your verification was successful and access to your document has been granted'});
+                                updateData("verificationRequests",requestId,{status:"SUCCESS"});
                             }else{
-                                res.send({status:0,message:'No face available, try to move your camera'});
-                                updateData("verificationRequests",requestId,{status:"NOFACE"});
-                                responseToClient(requestId,{status:0,message:"NOFACE"});
-                                
+                                responseToClient(requestId,{status:0,message:"NOTAMATCH"});
+                                res.send({status:0,message:"Identity check failed! Something Went Wrong"});
+                                updateData("verificationRequests",requestId,{status:"NOTAMATCH"});
                             }
-                        });
+                        })
                     }
                 });
             }else {
